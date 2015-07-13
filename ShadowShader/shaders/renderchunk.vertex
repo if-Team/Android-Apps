@@ -1,0 +1,109 @@
+#version 100
+uniform MAT4 WORLDVIEWPROJ;
+uniform vec4 FOG_COLOR;
+uniform vec2 FOG_CONTROL;
+uniform float RENDER_DISTANCE;
+uniform vec2 VIEWPORT_DIMENSION;
+uniform vec4 CURRENT_COLOR;		//current color r contains the offset to apply to the fog for the "fade in"
+uniform POS3 CHUNK_ORIGIN;
+uniform POS3 VIEW_POS;
+uniform float FAR_CHUNKS_DISTANCE;
+uniform float TIME;
+
+attribute POS4 POSITION;
+attribute vec4 COLOR;
+attribute vec2 TEXCOORD_0;
+attribute vec2 TEXCOORD_1;
+
+uniform sampler2D TEXTURE_0;
+uniform sampler2D TEXTURE_1;
+
+varying vec2 uv0;
+varying vec2 uv1;
+varying vec4 color;
+
+#ifdef FOG
+	varying vec4 fogColor;
+#endif
+
+const float rA = 1.0;
+const float rB = 1.0;
+const vec3 UNIT_Y = vec3(0,1,0);
+const float DIST_DESATURATION = 56.0 / 255.0; //WARNING this value is also hardcoded in the water color, don'tchange
+
+void main () {
+    POS4 pos = WORLDVIEWPROJ * POSITION;
+    gl_Position = pos;
+
+    vec3 position = POSITION.xyz + CHUNK_ORIGIN;
+float pi = 3.14159;
+
+    uv0 = TEXCOORD_0;
+    uv1 = TEXCOORD_1;
+	color = COLOR;
+
+    vec2 tex = uv0 * vec2 (32.0, 16.0);
+
+///// find distance from the camera
+
+#if defined(FOG) || defined(NEAR_WATER)
+		#ifdef FANCY
+		vec3 relPos = -VIEW_POS - (POSITION.xyz + CHUNK_ORIGIN);
+		float cameraDepth = length(relPos);
+	#else
+		float cameraDepth = pos.z;
+	#endif
+#endif
+
+///// apply fog
+
+#ifdef FOG
+	float len = cameraDepth / RENDER_DISTANCE;
+	#ifdef ALLOW_FADE
+		len += CURRENT_COLOR.r;
+	#endif
+
+    fogColor.rgb = FOG_COLOR.rgb;
+	fogColor.a = clamp((len - FOG_CONTROL.x) / (FOG_CONTROL.y - FOG_CONTROL.x), 0.0, 1.0);
+#endif
+
+///// water magic
+#ifdef NEAR_WATER
+	#ifdef FANCY  /////enhance water
+
+		color.rgb = FOG_COLOR.rgb;
+		color.a = 0.3;
+
+		float wav = sin ((position.x * position.z + 0.5) * 2.0);
+		float wav2 = -sin ((position.x * position.z + 0.8) * 2.0);
+		float wav3 = sin ((position.x * position.z  + 1.8) * 2.0);
+		float wav4 = -sin ((position.x * position.z + 1.2) * 2.0);
+		float wav5 = sin ((position.x * position.z + 1.25) * 2.0);
+		float wav6 = -sin ((position.x * position.z + 1.3) * 2.0);
+		float wav7 = sin ((position.x * position.z + 1.0) * 2.0);
+		float wav8 = -sin ((position.x * position.z + 0.75) * 2.0);
+
+		float wave = sin (TIME * 4.0 + position.x * wav * wav2 + position.x * 0.3 * wav3 * wav4) / 8.0 + sin (TIME * 4.0 + position.z * wav5 * wav6 + position.z * 3.0 * wav7 * wav8) / 8.0;
+
+		gl_Position.y += wave;
+		color.rgb *= 1.0 + wave;
+
+
+
+		float F = dot(normalize(relPos), UNIT_Y);
+
+		//if both NEAR_WATER and FOG are defined, it's forced fog and we're underwater
+		#ifndef FOG  //over water
+			F = 1.0 - max(F, 0.1);
+		#else //under water
+			color.a = 0.7; //disable fake transparency and be transparent
+		#endif
+
+		F = 1.0 - mix(F*F*F*F, 1.0, min(1.0, cameraDepth / FAR_CHUNKS_DISTANCE));
+
+		color.rg -= vec2(F * DIST_DESATURATION);
+	#else
+		color.a = pos.z / FAR_CHUNKS_DISTANCE + 0.5;
+	#endif //FANCY
+#endif
+}

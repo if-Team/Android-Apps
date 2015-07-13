@@ -1,0 +1,12 @@
+#version 100
+
+varying vec4 color;
+
+varying vec2 uv;
+
+uniform vec4 CURRENT_COLOR;
+uniform sampler2D TEXTURE_0;
+
+void main() {
+	gl_FragColor = color * CURRENT_COLOR;
+}

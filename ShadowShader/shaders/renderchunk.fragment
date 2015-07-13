@@ -1,0 +1,66 @@
+#version 100
+
+varying vec2 uv0;
+varying vec2 uv1;
+varying vec4 color;
+
+#ifdef FOG
+	varying vec4 fogColor;
+#endif
+
+uniform sampler2D TEXTURE_0;
+uniform sampler2D TEXTURE_1;
+
+void main () {
+    vec4 tex = texture2D (TEXTURE_0, uv0);
+    vec4 light = texture2D (TEXTURE_1, uv1);
+
+	vec4 diffuse = tex * light;
+
+#ifdef ALPHA_TEST
+	if(diffuse.a < 0.5)
+	 	discard;
+#endif
+	diffuse *= color;
+
+    float b = (color.r + color.g + color.b) / 3.0;
+
+    if (color.r > (color.g + color.b) * 0.6) {
+        b = color.r * 1.45;
+    }
+    else if (color.g > (color.r + color.b) * 0.6) {
+        b = color.g * 1.45;
+    }
+    else if (color.b > (color.r + color.g) * 0.6) {
+        b = color.b * 1.45;
+    }
+
+    if (uv1.y < 0.9) {
+        diffuse.rg *= 0.75 + uv1.x * 0.5;
+    }
+    else if (uv1.y < 0.93) {
+        diffuse.rg *= 0.75 + (uv1.y - 0.9) / 0.03 * 0.5 + uv1.x * (1.25 - (0.75 + (uv1.y - 0.9) / 0.03 * 0.5));
+    }
+    else {
+        diffuse.rg *= 1.25;
+    }
+    if (uv1.x * 16.0 > 12.0) {
+        diffuse.r *= (1.0 + 0.5 * (uv1.x * 16.0 - 12.0) / 4.0);
+        diffuse.rg *= 1.125;
+    }
+    else if (b < 0.65) {
+        diffuse.rg *= (0.65 + uv1.x * 0.35) * 1.125;
+    }
+    else if (b < 0.9) {
+        diffuse.rg *= (0.65 + (b - 0.65) / 0.25 * 0.35 + uv1.x * (1.0 - (0.65 + (b - 0.65) / 0.25 * 0.35))) * 1.125;
+    }
+    else {
+        diffuse.rg *= 1.125;
+    }
+
+
+#ifdef FOG
+	diffuse.rgb = mix( diffuse.rgb, fogColor.rgb, fogColor.a );
+#endif
+	gl_FragColor = diffuse;
+}
