@@ -1,13 +1,16 @@
 package ifteam.affogatoman.cornbutter;
 
 import android.graphics.*;
+import android.net.*;
+import android.os.*;
 import android.util.Log;
+
 import java.io.*;
+import java.util.*;
+
 import ifteam.affogatoman.cornbutter.TGAReader;
 import org.json.*;
-import android.net.*;
-import java.util.*;
-import android.os.*;
+import android.widget.*;
 
 public class TerrainExtracter {
     public static Bitmap getTerrain(File file) {
@@ -37,10 +40,26 @@ public class TerrainExtracter {
             
             String metaStr = new String(bytes);
             
-            new JSONArray(metaStr);
+            JSONArray metas = new JSONArray(metaStr);
+            
+            for(int count = 0; count < metas.length(); count++) {
+                JSONObject obj = metas.getJSONObject(count);
+                JSONArray uvs = obj.getJSONArray("uvs");
+                String name = obj.getString("name");
+                
+                for(int uvsCount = 0; uvsCount < uvs.length(); uvsCount++) {
+                    JSONArray uvsAt = uvs.getJSONArray(uvsCount);
+                    int x = (int) Math.round(uvsAt.getDouble(0) * bitmap.getWidth());
+                    int y = (int) Math.round(uvsAt.getDouble(1) * bitmap.getHeight());
+                    int width = (int) Math.round(uvsAt.getDouble(2) * bitmap.getWidth()) - x;
+                    int height = (int) Math.round(uvsAt.getDouble(3) * bitmap.getHeight()) - y;
+                    
+                    Log.i("popcorn", name+"_"+uvsCount+" : "+x+", "+y+", "+width+", "+height);
+                }
+            }
             
         } catch(Exception e) {
-            e.printStackTrace();
+            Log.e("popcorn", e.toString());
         }
     }
 }
