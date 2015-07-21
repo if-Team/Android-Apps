@@ -13,6 +13,9 @@ import org.json.*;
 import android.widget.*;
 
 public class TerrainExtracter {
+    static final String SAVE_PATH = "Affogatoman/CornButter/";
+    
+    
     public static Bitmap getTerrain(File file) {
         try {
             FileInputStream fis = new FileInputStream(file);
@@ -54,7 +57,14 @@ public class TerrainExtracter {
                     int width = (int) Math.round(uvsAt.getDouble(2) * bitmap.getWidth()) - x;
                     int height = (int) Math.round(uvsAt.getDouble(3) * bitmap.getHeight()) - y;
                     
-                    Log.i("popcorn", name+"_"+uvsCount+" : "+x+", "+y+", "+width+", "+height);
+                    Bitmap cutBitmap = Bitmap.createBitmap(bitmap, x, y, width, height);
+                    
+                    File file = new File(Environment.getExternalStorageDirectory(), SAVE_PATH+name+"_"+uvsCount+".png");
+                    file.getParentFile().mkdirs();
+                    
+                    FileOutputStream fos = new FileOutputStream(file);
+                    cutBitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                    fos.close();
                 }
             }
             

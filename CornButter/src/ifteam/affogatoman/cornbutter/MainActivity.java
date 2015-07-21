@@ -14,7 +14,6 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
         
-        Bitmap terrain = TerrainExtracter.getTerrain(new File("/sdcard/SpeedSoftware/Extracted/pkg/assets/images/terrain-atlas.tga"));
-        TerrainExtracter.cutAndSave(terrain, new File("/sdcard/SpeedSoftware/Extracted/pkg/assets/images/terrain.meta"));
+        
     }
 }
